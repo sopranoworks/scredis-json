@@ -1,0 +1,26 @@
+#User Specific
+*.userprefs
+*.usertasks
+
+#Mono Project Files
+*.pidb
+*.resources
+test-results/
+
+#Build
+lib/
+obj/
+
+#sbt
+target/
+
+#IntelliJ
+.idea/
+.bsp/
+
+#osx
+.DS_Store
+
+#
+*.nupkg
+*.zip

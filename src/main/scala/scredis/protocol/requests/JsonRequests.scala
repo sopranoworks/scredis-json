@@ -1,0 +1,194 @@
+package scredis.protocol.requests
+
+import io.circe._
+import io.circe.parser._
+import scredis.protocol.{Decoder, _}
+import scredis.serialization.{UTF8StringReader, Writer}
+
+object JsonRequests {
+  import scredis.serialization.Implicits.longReader
+
+  object JsonSet extends Command("JSON.SET")
+  object JsonSetNX extends Command("JSON.SET")
+  object JsonSetXX extends Command("JSON.SET")
+  object JsonGet extends Command("JSON.GET")
+  object JsonDel extends Command("JSON.DEL")
+  object JsonMerge extends Command("JSON.MERGE")
+  object JsonToggle extends Command("JSON.TOGGLE")
+  object JsonClear extends Command("JSON.CLEAR")
+  object JsonType extends Command("JSON.TYPE")
+
+  object JsonMSet extends Command("JSON.MSET")
+  object JsonMGet extends Command("JSON.MGET")
+
+  object JsonStrLen extends Command("JSON.STRLEN")
+  object JsonStrAppend extends Command("JSON.STRAPPEND")
+
+  object JsonNumIncBy extends Command("JSON.NUMINCRBY")
+  object JsonNumMulBy extends Command("JSON.NUMMULTBY")
+
+  object JsonObjKeys extends Command("JSON.OBJKEYS")
+  object JsonObjLen extends Command("JSON.OBJLEN")
+
+  object JsonArrAppend extends Command("JSON.ARRAPPEND")
+  object JsonArrIndex extends Command("JSON.ARRINDEX")
+  object JsonArrInsert extends Command("JSON.ARRINSERT")
+  object JsonArrLen extends Command("JSON.ARRLEN")
+  object JsonArrPop extends Command("JSON.ARRPOP")
+  object JsonArrTrim extends Command("JSON.ARRTRIM")
+
+  trait BooleanDecoder extends Request[Boolean] {
+    override def decode: Decoder[Boolean] = {
+      case SimpleStringResponse(_)  => true
+      case BulkStringResponse(None) => false
+    }
+  }
+
+  trait LongDecoder extends Request[Long] {
+    override def decode: Decoder[Long] = {
+      case IntegerResponse(value) => value
+    }
+  }
+
+  trait JsonDecoder extends Request[Option[Json]] {
+    override def decode: Decoder[Option[Json]] = {
+      case BulkStringResponse(optBytes) =>
+        optBytes.flatMap {
+          bytes =>
+            parse(UTF8StringReader.read(bytes)) match {
+              case Right(json) => Some(json)
+              case Left(e) =>
+                None
+            }
+        }
+    }
+  }
+
+  trait ArrayLongDecoder extends Request[List[Option[Long]]] {
+    override def decode: Decoder[List[Option[Long]]] = {
+      case arr : ArrayResponse =>
+        arr.parsed[Option[Long], List] {
+          case IntegerResponse(value) => Some(value)
+          case BulkStringResponse(None) => None
+        }
+    }
+  }
+
+  trait ArrayStringDecoder extends Request[List[Option[String]]] {
+    override def decode: Decoder[List[Option[String]]] = {
+      case arr : ArrayResponse =>
+        arr.parsed[Option[String], List] {
+          case b: BulkStringResponse => b.flattenedOpt[String]
+        }
+    }
+  }
+
+  trait ArrayJsonDecoder extends Request[List[Option[Json]]] {
+    override def decode: Decoder[List[Option[Json]]] = {
+      case arr : ArrayResponse =>
+        arr.parsed[Option[Json], List] {
+          case BulkStringResponse(optBytes) =>
+            optBytes.flatMap {
+              bytes =>
+                parse(UTF8StringReader.read(bytes)) match {
+                  case Right(json) => Some(json)
+                  case Left(e) =>
+                    None
+                }
+            }
+        }
+    }
+  }
+
+  case class JsonSet[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[Boolean](
+    JsonSet, key, path, writer.write(value)
+  ) with Key with BooleanDecoder {}
+
+  case class JsonGet(key:String, paths:String*) extends Request[Option[Json]](
+    JsonGet, key +: paths:_*
+  ) with Key with JsonDecoder {}
+
+  case class JsonMerge[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[Boolean](
+    JsonMerge, key, path, writer.write(value)
+  ) with Key with BooleanDecoder {}
+
+  case class JsonDel(key:String, path:String) extends Request[Long](
+    JsonDel, key, path
+  ) with Key with LongDecoder {}
+
+  case class JsonToggle(key:String, path:String) extends Request[List[Option[Long]]](
+      JsonToggle, key, path
+    ) with Key with ArrayLongDecoder {}
+
+  case class JsonClear(key:String, path:String) extends Request[Long](
+    JsonClear, key, path
+  ) with Key with LongDecoder {}
+
+  case class JsonType(key:String, path:String) extends Request[List[Option[String]]](
+    JsonType, key, path
+  ) with Key with ArrayStringDecoder {}
+
+
+  case class JsonStrLen(key:String, path:String) extends Request[List[Option[Long]]](
+    JsonStrLen, key, path
+  ) with Key with ArrayLongDecoder {}
+
+  case class JsonStrAppend[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[List[Option[Long]]](
+    JsonStrAppend, key, path, writer.write(value)
+  ) with Key with ArrayLongDecoder {}
+
+
+  case class JsonNumIncBy[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[Option[Json]](
+    JsonNumIncBy, key, path, writer.write(value)
+  ) with Key with JsonDecoder
+
+  case class JsonNumMulBy[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[Option[Json]](
+    JsonNumMulBy, key, path, writer.write(value)
+  ) with Key with JsonDecoder
+
+
+  case class JsonObjLen(key:String, path:String) extends Request[List[Option[Long]]](
+    JsonObjLen, key, path
+  ) with Key with ArrayLongDecoder {}
+
+  case class JsonObjKeys(key:String, path:String) extends Request[List[Option[List[String]]]](
+    JsonObjKeys, key, path
+  ) with Key {
+    override def decode: Decoder[List[Option[List[String]]]] = {
+      case arr : ArrayResponse =>
+        arr.parsed[Option[List[String]], List] {
+          case keys : ArrayResponse =>
+            Some(keys.parsed[String, List] {
+              case b : BulkStringResponse => b.flattened[String]
+            })
+          case BulkStringResponse(None) => None
+        }
+    }
+  }
+
+  
+  case class JsonArrAppend[W](key:String, path:String, values:W*)(implicit writer: Writer[W]) extends Request[List[Option[Long]]](
+    JsonArrAppend, key +: path +: values.map(v => writer.write(v)):_*
+  ) with Key with ArrayLongDecoder {}
+
+  case class JsonArrIndex(key:String, path:String, start:Int, stop:Int) extends Request[List[Option[Long]]](
+    JsonArrIndex, key, path, start, stop
+  ) with Key with ArrayLongDecoder {}
+
+  case class JsonArrInsert[W](key:String, path:String, index:Int, values:W*)(implicit writer: Writer[W]) extends Request[List[Option[Long]]](
+    JsonArrInsert, key +: path +: index +: values.map(v => writer.write(v)):_*
+  ) with Key with ArrayLongDecoder {}
+
+  case class JsonArrLen(key:String, path:String) extends Request[List[Option[Long]]](
+    JsonArrLen, key, path
+  ) with Key with ArrayLongDecoder {}
+
+  case class JsonArrPop(key:String, path:String, index:Int) extends Request[List[Option[Json]]](
+    JsonArrPop, key, path, index
+  ) with Key with ArrayJsonDecoder {}
+
+  case class JsonArrTrim(key:String, path:String, start:Int, stop:Int) extends Request[List[Option[Long]]](
+    JsonArrTrim, key, path, start, stop
+  ) with Key with ArrayLongDecoder {}
+
+}
