@@ -37,6 +37,8 @@ object JsonRequests {
   object JsonArrPop extends Command("JSON.ARRPOP")
   object JsonArrTrim extends Command("JSON.ARRTRIM")
 
+  object JsonDebug extends Command("JSON.DEBUG")
+
   trait BooleanDecoder extends Request[Boolean] {
     override def decode: Decoder[Boolean] = {
       case SimpleStringResponse(_)  => true
@@ -64,7 +66,16 @@ object JsonRequests {
     }
   }
 
-  trait ArrayLongDecoder extends Request[List[Option[Long]]] {
+  trait LongArrayDecoder extends Request[List[Long]] {
+    override def decode: Decoder[List[Long]] = {
+      case arr : ArrayResponse =>
+        arr.parsed[Long, List] {
+          case IntegerResponse(value) => value
+        }
+    }
+  }
+
+  trait OptLongArrayDecoder extends Request[List[Option[Long]]] {
     override def decode: Decoder[List[Option[Long]]] = {
       case arr : ArrayResponse =>
         arr.parsed[Option[Long], List] {
@@ -74,7 +85,7 @@ object JsonRequests {
     }
   }
 
-  trait ArrayStringDecoder extends Request[List[Option[String]]] {
+  trait OptStringArrayDecoder extends Request[List[Option[String]]] {
     override def decode: Decoder[List[Option[String]]] = {
       case arr : ArrayResponse =>
         arr.parsed[Option[String], List] {
@@ -83,7 +94,7 @@ object JsonRequests {
     }
   }
 
-  trait ArrayJsonDecoder extends Request[List[Option[Json]]] {
+  trait OptJsonArrayDecoder extends Request[List[Option[Json]]] {
     override def decode: Decoder[List[Option[Json]]] = {
       case arr : ArrayResponse =>
         arr.parsed[Option[Json], List] {
@@ -118,7 +129,7 @@ object JsonRequests {
 
   case class JsonToggle(key:String, path:String) extends Request[List[Option[Long]]](
       JsonToggle, key, path
-    ) with Key with ArrayLongDecoder
+    ) with Key with OptLongArrayDecoder
 
   case class JsonClear(key:String, path:String) extends Request[Long](
     JsonClear, key, path
@@ -126,16 +137,16 @@ object JsonRequests {
 
   case class JsonType(key:String, path:String) extends Request[List[Option[String]]](
     JsonType, key, path
-  ) with Key with ArrayStringDecoder
+  ) with Key with OptStringArrayDecoder
 
 
   case class JsonStrLen(key:String, path:String) extends Request[List[Option[Long]]](
     JsonStrLen, key, path
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
   case class JsonStrAppend(key:String, path:String, value:String) extends Request[List[Option[Long]]](
     JsonStrAppend, key, path, value
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
 
   case class JsonNumIncBy[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[Option[Json]](
@@ -149,7 +160,7 @@ object JsonRequests {
 
   case class JsonMGet(keys:Seq[String], path:String) extends Request[List[Option[Json]]](
     JsonMGet, (keys ++ List(path)).map(UTF8StringWriter.write):_*
-  ) with ArrayJsonDecoder
+  ) with OptJsonArrayDecoder
 
   case class JsonMSet[W](keyPathValue:(String, String, W)*)(implicit writer: Writer[W]) extends Request[Boolean](
     JsonMSet, keyPathValue.flatMap(kpv => List[Any](kpv._1, kpv._2, writer.write(kpv._3))):_*
@@ -158,7 +169,7 @@ object JsonRequests {
 
   case class JsonObjLen(key:String, path:String) extends Request[List[Option[Long]]](
     JsonObjLen, key, path
-  ) with Key with ArrayLongDecoder {}
+  ) with Key with OptLongArrayDecoder
 
   case class JsonObjKeys(key:String, path:String) extends Request[List[Option[List[String]]]](
     JsonObjKeys, key, path
@@ -178,26 +189,29 @@ object JsonRequests {
   
   case class JsonArrAppend[W](key:String, path:String, values:W*)(implicit writer: Writer[W]) extends Request[List[Option[Long]]](
     JsonArrAppend, key +: path +: values.map(v => writer.write(v)):_*
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
   case class JsonArrIndex[W](key:String, path:String, value:W, start:Int, stop:Int)(implicit writer: Writer[W]) extends Request[List[Option[Long]]](
     JsonArrIndex, key, path, value, start, stop
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
   case class JsonArrInsert[W](key:String, path:String, index:Int, values:W*)(implicit writer: Writer[W]) extends Request[List[Option[Long]]](
     JsonArrInsert, key +: path +: index +: values.map(v => writer.write(v)):_*
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
   case class JsonArrLen(key:String, path:String) extends Request[List[Option[Long]]](
     JsonArrLen, key, path
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
   case class JsonArrPop(key:String, path:String, index:Int) extends Request[List[Option[Json]]](
     JsonArrPop, key, path, index
-  ) with Key with ArrayJsonDecoder
+  ) with Key with OptJsonArrayDecoder
 
   case class JsonArrTrim(key:String, path:String, start:Int, stop:Int) extends Request[List[Option[Long]]](
     JsonArrTrim, key, path, start, stop
-  ) with Key with ArrayLongDecoder
+  ) with Key with OptLongArrayDecoder
 
+  case class JsonDebugMemory(key:String, path:String) extends Request[List[Long]](
+    JsonDebug, "MEMORY", key, path
+  ) with Key with LongArrayDecoder
 }

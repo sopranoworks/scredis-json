@@ -30,6 +30,8 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
   }
 
   case class JsonRecord(name:String, score:Int, flag:Boolean, optValue:Option[Int], arr:List[Int], emptyArr:List[Int] = Nil)
+  case class JsonRecord2(name:String, score:Int, level:Int, flag:Boolean, optValue:Option[Int], arr:List[Int], emptyArr:List[Int] = Nil)
+  case class Level(level:Int)
 
   "executing JSON. commands" should {
     "normally success" in new AkkaTestkitSpecs2Support {
@@ -79,6 +81,11 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       Await.result(jsonClient.Json.strLen("json", "$.name2"),_5s).isEmpty must_== true
       Await.result(jsonClient.Json.strLen("json", "$.score"),_5s).head must beNone
 
+      // JSON.TYPE
+
+      Await.result(jsonClient.Json.types("json", "$.score"), _5s) must_== List(Some("integer"))
+      Await.result(jsonClient.Json.types("json", "$.name"), _5s) must_== List(Some("string"))
+
       // JSON.STRAPPEND
 
       Await.result(jsonClient.Json.strAppend("json", "$.name", "!!"),_5s).head.get must_== 12
@@ -103,7 +110,17 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
 
       Await.result(jsonClient.Json.mGet[Int](List("json", "json3", "json4"), "$.score"), _5s) must_== List(Some(List(Some(1000))), Some(List(Some(100))), None)
       Await.result(jsonClient.Json.mGet[Int](List("json", "json3"), "$.optValue"), _5s) must_== List(Some(List(Some(999))), Some(List(None)))
-      
+
+      // JSON.OBJLEN
+
+      Await.result(jsonClient.Json.objLen("json"), _5s) must_== List(Some(6))
+      Await.result(jsonClient.Json.objLen("json2"), _5s) must_== List(None)
+
+      // JSON.OBJKEYS
+
+      Await.result(jsonClient.Json.objKeys("json"), _5s) must_== List(Some(List("name", "score", "flag", "emptyArr", "arr", "optValue")))
+      Await.result(jsonClient.Json.objKeys("json2"), _5s) must_== List(None)
+
       // JSON.ARRAPPEND
 
       Await.result(jsonClient.Json.arrAppend("json", "$.arr", 4, 5, 6),_5s).head.get must_== 6
@@ -141,6 +158,18 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       res9.get.arr must_== List(10,11,12)
       Await.result(jsonClient.Json.arrTrim("json", "$.emptyArr", 2, 4),_5s).head.get must_== 0
       Await.result(jsonClient.Json.arrTrim("json", "$.name", 2, 4),_5s).head must beNone
+
+      // JSON.MERGE
+
+      Await.result(jsonClient.Json.merge("json", "$", Level(99)), _5s) must_== true
+      val res10 = Await.result(jsonClient.Json.get[JsonRecord2]("json"),_5s).get
+      res10.level must_== 99
+
+      // JSON.DEBUG MEMORY
+
+      Await.result(jsonClient.Json.debugMemory("json"), _5s).nonEmpty must_== true
+      Await.result(jsonClient.Json.debugMemory("json", "$.unknown"), _5s).isEmpty must_== true
+      Await.result(jsonClient.Json.debugMemory("json5"), _5s).isEmpty must_== true
     }
   }
 }

@@ -73,9 +73,39 @@ trait JsonCommands { self: NonBlockingConnection =>
     def get[R](key:String, paths:String*)(implicit decoder: Decoder[R], ec:ExecutionContext):Future[Option[R]] =
       send(JsonGet(key, paths:_*)).map (_.flatMap (_.as[R].toOption))
 
+    /**
+     * Merge a given JSON value into matching paths. Consequently, JSON values at matching paths are updated, deleted, or expanded with new children.
+     *
+     * @param key is the key to merge into.
+     * @param path specifies the JSONPath. For non-existing keys the path must be $. For existing keys, for each matched path, the value that matches the path is merged with the JSON value. For existing keys, when the path exists, except for the last element, a new child is added with the JSON value
+     * @param value is the JSON value to merge with at the specified path. Merging is done according to the following rules per JSON value in the value argument while considering the corresponding original value if it exists:
+     *
+     *              merging an existing object key with a null value deletes the key
+     *              merging an existing object key with non-null value updates the value
+     *              merging a non-existing object key adds the key and value
+     *              merging an existing array with any merged value, replaces the entire array with the value
+     * @param writer is value type parameter writer
+     * @tparam W is source value type
+     * @return a simple string reply: true if executed correctly or error if fails to set the new values
+     */
     def mergeRaw[W](key:String, path:String, value:W)(implicit writer: Writer[W]):Future[Boolean] =
       send(JsonMerge(key, path, value))
 
+    /**
+     * Merge a given JSON value into matching paths. Consequently, JSON values at matching paths are updated, deleted, or expanded with new children.
+     * 
+     * @param key is the key to merge into.
+     * @param path specifies the JSONPath. For non-existing keys the path must be $. For existing keys, for each matched path, the value that matches the path is merged with the JSON value. For existing keys, when the path exists, except for the last element, a new child is added with the JSON value
+     * @param value is the JSON value to merge with at the specified path. Merging is done according to the following rules per JSON value in the value argument while considering the corresponding original value if it exists:
+     *
+     *              merging an existing object key with a null value deletes the key
+     *              merging an existing object key with non-null value updates the value
+     *              merging a non-existing object key adds the key and value
+     *              merging an existing array with any merged value, replaces the entire array with the value
+     * @param encoder is json encoder for W
+     * @tparam W is source value type
+     * @return a simple string reply: true if executed correctly or error if fails to set the new values
+     */
     def merge[W](key:String, path:String, value:W)(implicit encoder: Encoder[W]):Future[Boolean] =
       send(JsonMerge(key, path, value.asJson)(JsonImplicits.jsonWriter))
 
@@ -109,6 +139,13 @@ trait JsonCommands { self: NonBlockingConnection =>
     def clear(key:String, path:String = "$"):Future[Long] =
       send(JsonClear(key, path))
 
+    /**
+     * Report the type of JSON value at path
+     * 
+     * @param key is key to parse.
+     * @param path is JSONPath to specify. Default is root $. Returns null if the key or path do not exist.
+     * @return an array of string replies for each path, specified as the value's type. For more information about replies,
+     */
     def types(key:String, path:String = "$"):Future[List[Option[String]]] =
       send(JsonType(key, path))
 
@@ -204,6 +241,27 @@ trait JsonCommands { self: NonBlockingConnection =>
      */
     def mGet[R](keys:Seq[String], path:String ="$")(implicit decoder: Decoder[R], ec:ExecutionContext):Future[List[Option[List[Option[R]]]]] =
       mGetRaw(keys, path).map(_.map(_.flatMap(_.as[List[Option[R]]].toOption)))
+
+
+    /**
+     * Report the number of keys in the JSON object at path in key
+     * 
+     * @param key is key to parse. Returns None for nonexistent keys.
+     * @param path is JSONPath to specify. Default is root $. Returns None for nonexistant path.
+     * @return an array of integer replies for each path specified as the number of keys in the object or None, if the matching JSON value is not an object.
+     */
+    def objLen(key:String, path:String = "$"):Future[List[Option[Long]]] =
+      send(JsonObjLen(key, path))
+
+    /**
+     * Return the keys in the object that's referenced by path
+     * 
+     * @param key is key to parse. Returns null for nonexistent keys.
+     * @param path is JSONPath to specify. Default is root $. Returns None for nonexistant path.
+     * @return an array of array replies for each path, an array of the key names in the object as a bulk string reply, or None if the matching JSON value is not an object.
+     */
+    def objKeys(key:String, path:String = "$"):Future[List[Option[List[String]]]] =
+      send(JsonObjKeys(key, path))
 
 
     /**
@@ -338,5 +396,9 @@ trait JsonCommands { self: NonBlockingConnection =>
      */
     def arrTrim(key:String, path:String = "$", start:Int = 0, stop:Int = 0):Future[List[Option[Long]]] =
       send(JsonArrTrim(key, path, start, stop))
+
+
+    def debugMemory(key:String, path:String = "$"):Future[List[Long]] =
+      send(JsonDebugMemory(key, path))
   }
 }
