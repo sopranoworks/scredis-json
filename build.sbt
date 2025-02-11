@@ -2,7 +2,7 @@ import xerial.sbt.Sonatype.sonatypeCentralHost
 import xerial.sbt.Sonatype.sonatype01
 
 
-val projectVersion = "0.1.0-SNAPSHOT"
+val projectVersion = "1.0.0-SNAPSHOT"
 val projectScalaVersion = "2.13.10"
 
 scalaVersion := "2.13.10"
@@ -19,7 +19,6 @@ Compile / unmanagedClasspath  ++= update.value.select(configurationFilter("compi
 def testLibraries = Seq(
   "org.specs2" %% "specs2-core" % "4.6.0" % Test,
   "org.specs2" %% "specs2-mock" % "4.6.0" % Test,
-  "org.scalatest" %% "scalatest" % "3.2.0-M1" % Test,
   "com.typesafe.akka" %% "akka-testkit" % "2.6.14" % Test
 )
 

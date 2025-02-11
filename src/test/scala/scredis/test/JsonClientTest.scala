@@ -29,13 +29,13 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
     def after: Any = Await.result(system.terminate(), _5s)
   }
 
-  case class JsonRecord(name:String, score:Int, flag:Boolean, optValue:Option[Int])
+  case class JsonRecord(name:String, score:Int, flag:Boolean, optValue:Option[Int], arr:List[Int], emptyArr:List[Int] = Nil)
 
-  "JSON.SET then JSON.GET" should {
+  "executing JSON. commands" should {
     "normally success" in new AkkaTestkitSpecs2Support {
       import system.dispatcher
 
-      val obj = JsonRecord("hello json", 100, true, Some(-1))
+      val obj = JsonRecord("hello json", 100, true, Some(-1), List(1,2,3))
       val jsonClient = JsonClient(host="127.0.0.1", port=6379)
       jsonClient.Json.set("json", "$", obj)
       jsonClient.Json.set("json2", "$", "test")
@@ -56,10 +56,14 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       val res3 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
       res3.get.flag must_== false
 
+      // JSON.CLEAR
+
       Await.result(jsonClient.Json.clear("json", "$.score"),_5s) must_== 1
 
       val res4 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
       res4.get.score must_== 0
+
+      // JSON.DEL
 
       Await.result(jsonClient.Json.del("json", "$.optValue"),_5s) must_== 1
 
@@ -67,6 +71,57 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       res5.get.optValue must beNone
 
       Await.result(jsonClient.Json.del("json", "$.optValue"),_5s) must_== 0
+
+      // JSON.STRLEN
+
+      Await.result(jsonClient.Json.strLen("json", "$.name"),_5s).head.get must_== 10
+      Await.result(jsonClient.Json.strLen("json", "$.name2"),_5s).isEmpty must_== true
+      Await.result(jsonClient.Json.strLen("json", "$.score"),_5s).head must beNone
+
+      // JSON.STRAPPEND
+
+      Await.result(jsonClient.Json.strAppend("json", "$.name", "!!"),_5s).head.get must_== 12
+      Await.result(jsonClient.Json.strAppend("json", "$.score", "!!"),_5s).head must beNone
+      Await.result(jsonClient.Json.strAppend("json", "$.name", "\"quote\""),_5s).head.get must_== 19
+      Await.result(jsonClient.Json.strAppend("json", "$.name", """"quote2""""),_5s).head.get must_== 27
+
+      // JSON.ARRAPPEND
+
+      Await.result(jsonClient.Json.arrAppend("json", "$.arr", 4, 5, 6),_5s).head.get must_== 6
+      val res6 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
+      res6.get.arr must_== List(1,2,3,4,5,6)
+      
+      Await.result(jsonClient.Json.arrAppend("json", "$.name", 4, 5, 6),_5s).head must beNone
+
+      // JSON.ARRLEN
+
+      Await.result(jsonClient.Json.arrLen("json", "$.arr"),_5s).head.get must_== 6
+      Await.result(jsonClient.Json.arrLen("json", "$.name"),_5s).head must beNone
+
+      // JSON.ARRINSERT
+
+      Await.result(jsonClient.Json.arrInsert("json", "$.arr", 3, 10, 11, 12),_5s).head.get must_== 9
+      val res7 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
+      res7.get.arr must_== List(1,2,3,10,11,12,4,5,6)
+
+      // JSON.ARRINDEX
+
+      Await.result(jsonClient.Json.arrIndex("json", "$.arr", 3), _5s).head.get must_== 2
+
+      // JSON.ARRPOP
+
+      Await.result(jsonClient.Json.arrPop[Int]("json", "$.arr"), _5s).head.get must_== 6
+      Await.result(jsonClient.Json.arrPop[Int]("json", "$.arr", 0), _5s).head.get must_== 1
+      Await.result(jsonClient.Json.arrPop[Int]("json", "$.emptyArr"), _5s).head must beNone
+      Await.result(jsonClient.Json.arrPop[Int]("json", "$.name"), _5s).head must beNone
+
+      // JSON.ARRTRIM
+
+      Await.result(jsonClient.Json.arrTrim("json", "$.arr", 2, 4),_5s).head.get must_== 3
+      val res8 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
+      res8.get.arr must_== List(10,11,12)
+      Await.result(jsonClient.Json.arrTrim("json", "$.emptyArr", 2, 4),_5s).head.get must_== 0
+      Await.result(jsonClient.Json.arrTrim("json", "$.name", 2, 4),_5s).head must beNone
     }
   }
 }
