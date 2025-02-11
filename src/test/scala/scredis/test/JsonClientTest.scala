@@ -39,6 +39,7 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       val jsonClient = JsonClient(host="127.0.0.1", port=6379)
       jsonClient.Json.set("json", "$", obj)
       jsonClient.Json.set("json2", "$", "test")
+      jsonClient.Json.set("json3", "$", obj.copy(optValue = None))
 
       val res1 = Await.result(jsonClient.Json.get[JsonRecord]("json2"),_5s)
 
@@ -85,11 +86,29 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       Await.result(jsonClient.Json.strAppend("json", "$.name", "\"quote\""),_5s).head.get must_== 19
       Await.result(jsonClient.Json.strAppend("json", "$.name", """"quote2""""),_5s).head.get must_== 27
 
+      // JSON.NUMINCBY
+
+      Await.result(jsonClient.Json.numIncBy("json", "$.score", 10),_5s).head.get must_== 10
+      Await.result(jsonClient.Json.numIncBy("json", "$.score", 10),_5s).head.get must_== 20
+      Await.result(jsonClient.Json.numIncBy("json", "$.name", 10),_5s).head must beNone
+
+      // JSON.MSET
+
+      Await.result(jsonClient.Json.mSet(("json","$.score", 1000), ("json", "$.optValue", 999)),_5s) must_== true
+      val res6 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s).get
+      res6.score must_== 1000
+      res6.optValue must beSome(999)
+
+      // JSON.MGet
+
+      Await.result(jsonClient.Json.mGet[Int](List("json", "json3", "json4"), "$.score"), _5s) must_== List(Some(List(Some(1000))), Some(List(Some(100))), None)
+      Await.result(jsonClient.Json.mGet[Int](List("json", "json3"), "$.optValue"), _5s) must_== List(Some(List(Some(999))), Some(List(None)))
+      
       // JSON.ARRAPPEND
 
       Await.result(jsonClient.Json.arrAppend("json", "$.arr", 4, 5, 6),_5s).head.get must_== 6
-      val res6 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
-      res6.get.arr must_== List(1,2,3,4,5,6)
+      val res7 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
+      res7.get.arr must_== List(1,2,3,4,5,6)
       
       Await.result(jsonClient.Json.arrAppend("json", "$.name", 4, 5, 6),_5s).head must beNone
 
@@ -101,8 +120,8 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       // JSON.ARRINSERT
 
       Await.result(jsonClient.Json.arrInsert("json", "$.arr", 3, 10, 11, 12),_5s).head.get must_== 9
-      val res7 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
-      res7.get.arr must_== List(1,2,3,10,11,12,4,5,6)
+      val res8 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
+      res8.get.arr must_== List(1,2,3,10,11,12,4,5,6)
 
       // JSON.ARRINDEX
 
@@ -118,8 +137,8 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       // JSON.ARRTRIM
 
       Await.result(jsonClient.Json.arrTrim("json", "$.arr", 2, 4),_5s).head.get must_== 3
-      val res8 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
-      res8.get.arr must_== List(10,11,12)
+      val res9 = Await.result(jsonClient.Json.get[JsonRecord]("json"),_5s)
+      res9.get.arr must_== List(10,11,12)
       Await.result(jsonClient.Json.arrTrim("json", "$.emptyArr", 2, 4),_5s).head.get must_== 0
       Await.result(jsonClient.Json.arrTrim("json", "$.name", 2, 4),_5s).head must beNone
     }

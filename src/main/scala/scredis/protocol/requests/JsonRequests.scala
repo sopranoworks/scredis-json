@@ -148,11 +148,11 @@ object JsonRequests {
 
 
   case class JsonMGet(keys:Seq[String], path:String) extends Request[List[Option[Json]]](
-    JsonMGet, keys.map(UTF8StringWriter.write) +: path
+    JsonMGet, (keys ++ List(path)).map(UTF8StringWriter.write):_*
   ) with ArrayJsonDecoder
 
   case class JsonMSet[W](keyPathValue:(String, String, W)*)(implicit writer: Writer[W]) extends Request[Boolean](
-    JsonMSet, keyPathValue.map(kpv => kpv._1 +: kpv._2 +: writer.write(kpv._3)).reduce((a,b) => a +: b)
+    JsonMSet, keyPathValue.flatMap(kpv => List[Any](kpv._1, kpv._2, writer.write(kpv._3))):_*
   ) with BooleanDecoder
 
 
