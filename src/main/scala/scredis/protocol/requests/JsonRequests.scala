@@ -111,8 +111,8 @@ object JsonRequests {
     }
   }
 
-  case class JsonSet[W](key:String, path:String, value:W)(implicit writer: Writer[W]) extends Request[Boolean](
-    JsonSet, key, path, writer.write(value)
+  case class JsonSet[W](key:String, path:String, value:W, option:Option[String])(implicit writer: Writer[W]) extends Request[Boolean](
+    JsonSet, (List(key, path, writer.write(value)) ++ option.map(List(_)).getOrElse(Nil)):_*
   ) with Key with BooleanDecoder
 
   case class JsonGet(key:String, paths:String*) extends Request[Option[Json]](

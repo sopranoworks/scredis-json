@@ -7,7 +7,7 @@ import scredis.protocol.AuthConfig
 
 import scala.concurrent.duration.FiniteDuration
 
-class JsonClient(
+class RedisJsonClient(
   host: String = RedisConfigDefaults.Redis.Host,
   port: Int = RedisConfigDefaults.Redis.Port,
   authOpt: Option[AuthConfig] = RedisConfigDefaults.Redis.AuthOpt,
@@ -46,7 +46,7 @@ class JsonClient(
   )
 }
 
-object JsonClient {
+object RedisJsonClient {
   def apply(
     host: String = RedisConfigDefaults.Redis.Host,
     port: Int = RedisConfigDefaults.Redis.Port,
@@ -62,7 +62,7 @@ object JsonClient {
     akkaIODispatcherPath: String = RedisConfigDefaults.IO.Akka.IODispatcherPath,
     akkaDecoderDispatcherPath: String = RedisConfigDefaults.IO.Akka.DecoderDispatcherPath,
     failCommandOnConnecting: Boolean =  RedisConfigDefaults.Global.FailCommandOnConnecting
-  )(implicit system: ActorSystem): JsonClient = new JsonClient(
+  )(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(
     host = host,
     port = port,
     authOpt = authOpt,
@@ -78,10 +78,10 @@ object JsonClient {
     akkaDecoderDispatcherPath = akkaDecoderDispatcherPath,
     failCommandOnConnecting =  failCommandOnConnecting
   )
-  def apply(config: RedisConfig)(implicit system: ActorSystem): JsonClient = new JsonClient(config)
-  def apply(config: Config)(implicit system: ActorSystem): JsonClient = new JsonClient(config)
-  def apply(configName: String)(implicit system: ActorSystem): JsonClient = new JsonClient(configName)
-  def apply(configName: String, path: String)(implicit system: ActorSystem): JsonClient = new JsonClient(
+  def apply(config: RedisConfig)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(config)
+  def apply(config: Config)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(config)
+  def apply(configName: String)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(configName)
+  def apply(configName: String, path: String)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(
     configName, path
   )
 }

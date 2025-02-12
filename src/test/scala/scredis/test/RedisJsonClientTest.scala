@@ -7,12 +7,12 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import org.specs2.mutable.{After, Specification}
 import org.specs2.specification.{AfterEach, BeforeEach}
-import scredis.JsonClient
+import scredis.RedisJsonClient
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class JsonClientTest extends Specification with BeforeEach with AfterEach {
+class RedisJsonClientTest extends Specification with BeforeEach with AfterEach {
   sequential
 
   import scredis.serialization.JsonImplicits._
@@ -38,10 +38,14 @@ class JsonClientTest extends Specification with BeforeEach with AfterEach {
       import system.dispatcher
 
       val obj = JsonRecord("hello json", 100, true, Some(-1), List(1,2,3))
-      val jsonClient = JsonClient(host="127.0.0.1", port=6379)
-      jsonClient.Json.set("json", "$", obj)
-      jsonClient.Json.set("json2", "$", "test")
-      jsonClient.Json.set("json3", "$", obj.copy(optValue = None))
+      val jsonClient = RedisJsonClient(host="127.0.0.1", port=6379)
+
+      Await.result(jsonClient.del("json"), _5s)
+      Await.result(jsonClient.Json.setNX("json", "$", obj), _5s) must_== true
+      Await.result(jsonClient.Json.set("json2", "$", "test"), _5s)
+      Await.result(jsonClient.Json.set("json3", "$", obj.copy(optValue = None)), _5s)
+      Await.result(jsonClient.Json.setNX("json", "$", obj), _5s) must_== false
+      Await.result(jsonClient.Json.setXX("json", "$", obj), _5s) must_== true
 
       val res1 = Await.result(jsonClient.Json.get[JsonRecord]("json2"),_5s)
 

@@ -33,8 +33,19 @@ trait JsonCommands { self: NonBlockingConnection =>
   }
 
   object Json {
+    /**
+     * Set the JSON value at path in key
+     *
+     * @param key is key to modify.
+     * @param path is JSONPath to specify. Default is root $. For new Redis keys the path must be the root. For existing keys, when the entire path exists, the value that it contains is replaced with the json value. For existing keys, when the path exists, except for the last element, a new child is added with the json value.
+     *             Adds a key (with its respective value) to a JSON Object (in a RedisJSON data type key) only if it is the last child in the path, or it is the parent of a new child being added in the path. Optional arguments NX and XX modify this behavior for both new RedisJSON data type keys as well as the JSON Object keys in them.
+     * @param value is value to set at the specified path
+     * @param writer is value type parameter writer
+     * @tparam W is source value type
+     * @return A simple string reply: true if executed correctly
+     */
     def setRaw[W](key:String, path:String = "$", value:W)(implicit writer:Writer[W]):Future[Boolean] =
-      send(JsonSet(key, path, value))
+      send(JsonSet(key, path, value, None))
 
     /**
      * Set the JSON value at path in key
@@ -48,7 +59,71 @@ trait JsonCommands { self: NonBlockingConnection =>
      * @return A simple string reply: true if executed correctly
      */
     def set[W](key:String, path:String = "$", value:W)(implicit encoder: Encoder[W]):Future[Boolean] =
-      send(JsonSet(key, path, value.asJson)(JsonImplicits.jsonWriter))
+      send(JsonSet(key, path, value.asJson, None)(JsonImplicits.jsonWriter))
+
+    /**
+     * Set the JSON value at path in key
+     * 
+     * sets the key only if it does not already exist.
+     *
+     * @param key is key to modify.
+     * @param path is JSONPath to specify. Default is root $. For new Redis keys the path must be the root. For existing keys, when the entire path exists, the value that it contains is replaced with the json value. For existing keys, when the path exists, except for the last element, a new child is added with the json value.
+     *             Adds a key (with its respective value) to a JSON Object (in a RedisJSON data type key) only if it is the last child in the path, or it is the parent of a new child being added in the path. Optional arguments NX and XX modify this behavior for both new RedisJSON data type keys as well as the JSON Object keys in them.
+     * @param value is value to set at the specified path
+     * @param writer is value type parameter writer
+     * @tparam W is source value type
+     * @return A simple string reply: true if executed correctly
+     */
+    def setRawNX[W](key:String, path:String = "$", value:W)(implicit writer:Writer[W]):Future[Boolean] =
+      send(JsonSet(key, path, value, Some("NX")))
+
+    /**
+     * Set the JSON value at path in key
+     *
+     * sets the key only if it does not already exist.
+     *
+     * @param key is key to modify.
+     * @param path is JSONPath to specify. Default is root $. For new Redis keys the path must be the root. For existing keys, when the entire path exists, the value that it contains is replaced with the json value. For existing keys, when the path exists, except for the last element, a new child is added with the json value.
+     *             Adds a key (with its respective value) to a JSON Object (in a RedisJSON data type key) only if it is the last child in the path, or it is the parent of a new child being added in the path. Optional arguments NX and XX modify this behavior for both new RedisJSON data type keys as well as the JSON Object keys in them.
+     * @param value is value to set at the specified path
+     * @param encoder is json encoder for W
+     * @tparam W is source value type
+     * @return A simple string reply: true if executed correctly
+     */
+    def setNX[W](key:String, path:String = "$", value:W)(implicit encoder: Encoder[W]):Future[Boolean] =
+      send(JsonSet(key, path, value.asJson, Some("NX"))(JsonImplicits.jsonWriter))
+
+    /**
+     * Set the JSON value at path in key
+     *
+     * sets the key only if it already exists.
+     *
+     * @param key is key to modify.
+     * @param path is JSONPath to specify. Default is root $. For new Redis keys the path must be the root. For existing keys, when the entire path exists, the value that it contains is replaced with the json value. For existing keys, when the path exists, except for the last element, a new child is added with the json value.
+     *             Adds a key (with its respective value) to a JSON Object (in a RedisJSON data type key) only if it is the last child in the path, or it is the parent of a new child being added in the path. Optional arguments NX and XX modify this behavior for both new RedisJSON data type keys as well as the JSON Object keys in them.
+     * @param value is value to set at the specified path
+     * @param writer is value type parameter writer
+     * @tparam W is source value type
+     * @return A simple string reply: true if executed correctly
+     */
+    def setRawXX[W](key:String, path:String = "$", value:W)(implicit writer:Writer[W]):Future[Boolean] =
+      send(JsonSet(key, path, value, Some("XX")))
+
+    /**
+     * Set the JSON value at path in key
+     *
+     * sets the key only if it already exists.
+     *
+     * @param key is key to modify.
+     * @param path is JSONPath to specify. Default is root $. For new Redis keys the path must be the root. For existing keys, when the entire path exists, the value that it contains is replaced with the json value. For existing keys, when the path exists, except for the last element, a new child is added with the json value.
+     *             Adds a key (with its respective value) to a JSON Object (in a RedisJSON data type key) only if it is the last child in the path, or it is the parent of a new child being added in the path. Optional arguments NX and XX modify this behavior for both new RedisJSON data type keys as well as the JSON Object keys in them.
+     * @param value is value to set at the specified path
+     * @param encoder is json encoder for W
+     * @tparam W is source value type
+     * @return A simple string reply: true if executed correctly
+     */
+    def setXX[W](key:String, path:String = "$", value:W)(implicit encoder: Encoder[W]):Future[Boolean] =
+      send(JsonSet(key, path, value.asJson, Some("XX"))(JsonImplicits.jsonWriter))
 
     /**
      * Return the value at path in JSON serialized form
@@ -397,7 +472,13 @@ trait JsonCommands { self: NonBlockingConnection =>
     def arrTrim(key:String, path:String = "$", start:Int = 0, stop:Int = 0):Future[List[Option[Long]]] =
       send(JsonArrTrim(key, path, start, stop))
 
-
+    /**
+     * Report a value's memory usage in bytes
+     * 
+     * @param key is key to parse.
+     * @param path is JSONPath to specify. Default is root $.
+     * @return an integer reply specified as the value size in bytes.
+     */
     def debugMemory(key:String, path:String = "$"):Future[List[Long]] =
       send(JsonDebugMemory(key, path))
   }
