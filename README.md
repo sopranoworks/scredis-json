@@ -32,13 +32,15 @@ To use Json.* commands, use RedisJsonClient/RedisJsonCluster instead of RedisCli
 The initialization method remains the same.
 
 ```scala
-val jsonClient = RedisJsonClient(host="127.0.0.1", port=6379)
+val jsonClient = RedisJson(host="127.0.0.1", port=6379)
 ```
 
 You can use powerful circe json serialization/deserialization in many commands .
 
 ```scala
 case class JsonRecord(name:String, score:Int, flag:Boolean, optValue:Option[Int], arr:List[Int], emptyArr:List[Int] = Nil)
+
+val obj = JsonRecord("hello json", 100, true, Some(-1), List(1,2,3))
 
 jsonClient.Json.setNX("json", "$", obj)
 jsonClient.Json.set("json2", "$", "test")

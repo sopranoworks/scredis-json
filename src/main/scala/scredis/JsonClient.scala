@@ -1,3 +1,22 @@
+/*
+ * The contents of this file are mostly taken from scredis.
+ *
+ * https://github.com/scredis/scredis/blob/master/src/main/scala/scredis/Client.scala
+ *
+ * Copyright (c) 2013 Livestream LLC. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package scredis
 
 import akka.actor.ActorSystem
@@ -7,7 +26,7 @@ import scredis.protocol.AuthConfig
 
 import scala.concurrent.duration.FiniteDuration
 
-class RedisJsonClient(
+class JsonClient(
   host: String = RedisConfigDefaults.Redis.Host,
   port: Int = RedisConfigDefaults.Redis.Port,
   authOpt: Option[AuthConfig] = RedisConfigDefaults.Redis.AuthOpt,
@@ -46,7 +65,7 @@ class RedisJsonClient(
   )
 }
 
-object RedisJsonClient {
+object JsonClient {
   def apply(
     host: String = RedisConfigDefaults.Redis.Host,
     port: Int = RedisConfigDefaults.Redis.Port,
@@ -62,7 +81,7 @@ object RedisJsonClient {
     akkaIODispatcherPath: String = RedisConfigDefaults.IO.Akka.IODispatcherPath,
     akkaDecoderDispatcherPath: String = RedisConfigDefaults.IO.Akka.DecoderDispatcherPath,
     failCommandOnConnecting: Boolean =  RedisConfigDefaults.Global.FailCommandOnConnecting
-  )(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(
+  )(implicit system: ActorSystem): JsonClient = new JsonClient(
     host = host,
     port = port,
     authOpt = authOpt,
@@ -78,10 +97,10 @@ object RedisJsonClient {
     akkaDecoderDispatcherPath = akkaDecoderDispatcherPath,
     failCommandOnConnecting =  failCommandOnConnecting
   )
-  def apply(config: RedisConfig)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(config)
-  def apply(config: Config)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(config)
-  def apply(configName: String)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(configName)
-  def apply(configName: String, path: String)(implicit system: ActorSystem): RedisJsonClient = new RedisJsonClient(
+  def apply(config: RedisConfig)(implicit system: ActorSystem): JsonClient = new JsonClient(config)
+  def apply(config: Config)(implicit system: ActorSystem): JsonClient = new JsonClient(config)
+  def apply(configName: String)(implicit system: ActorSystem): JsonClient = new JsonClient(configName)
+  def apply(configName: String, path: String)(implicit system: ActorSystem): JsonClient = new JsonClient(
     configName, path
   )
 }
