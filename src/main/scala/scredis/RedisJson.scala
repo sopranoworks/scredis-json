@@ -43,7 +43,7 @@ class RedisJson(
     akkaDecoderDispatcherPath: String,
     failCommandOnConnecting: Boolean,
     subscription: Subscription
-  ) extends Redis with JsonCommands {
+  ) extends Redis(systemOrName, host, port, authOpt, database, nameOpt, connectTimeout, receiveTimeoutOpt, maxWriteBatchSize, tcpSendBufferSizeHint, tcpReceiveBufferSizeHint, akkaListenerDispatcherPath, akkaIODispatcherPath, akkaDecoderDispatcherPath, failCommandOnConnecting, subscription) with JsonCommands {
 
   def this(
     host: String = RedisConfigDefaults.Redis.Host,

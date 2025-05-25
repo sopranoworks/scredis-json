@@ -41,7 +41,7 @@ class JsonClient(
   akkaIODispatcherPath: String = RedisConfigDefaults.IO.Akka.IODispatcherPath,
   akkaDecoderDispatcherPath: String = RedisConfigDefaults.IO.Akka.DecoderDispatcherPath,
   failCommandOnConnecting: Boolean =  RedisConfigDefaults.Global.FailCommandOnConnecting
-)(implicit system: ActorSystem) extends Client with JsonCommands {
+)(implicit system: ActorSystem) extends Client(host, port, authOpt, database, nameOpt, connectTimeout, receiveTimeoutOpt, maxWriteBatchSize, tcpSendBufferSizeHint, tcpReceiveBufferSizeHint, akkaListenerDispatcherPath, akkaIODispatcherPath, akkaDecoderDispatcherPath, failCommandOnConnecting) with JsonCommands {
   def this(config: RedisConfig)(implicit system: ActorSystem) = this(
     host = config.Redis.Host,
     port = config.Redis.Port,

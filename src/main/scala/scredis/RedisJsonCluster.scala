@@ -42,7 +42,7 @@ class RedisJsonCluster(
     systemOpt:Option[ActorSystem] = None,
     failCommandOnConnecting: Boolean = RedisConfigDefaults.Global.FailCommandOnConnecting,
     authOpt: Option[AuthConfig] = RedisConfigDefaults.Config.Redis.AuthOpt
-  ) extends RedisCluster with JsonCommands {
+  ) extends RedisCluster(nodes, maxRetries, receiveTimeoutOpt, connectTimeout, maxWriteBatchSize, tcpSendBufferSizeHint, tcpReceiveBufferSizeHint, akkaListenerDispatcherPath, akkaIODispatcherPath, akkaDecoderDispatcherPath, tryAgainWait, clusterDownWait, systemOpt, failCommandOnConnecting, authOpt) with JsonCommands {
 
   def this(config: RedisConfig, systemOpt:Option[ActorSystem]) = this(
     nodes = config.Redis.ClusterNodes,
