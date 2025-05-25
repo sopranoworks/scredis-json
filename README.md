@@ -53,8 +53,7 @@ jsonClient.Json.get[JsonRecord]("json")
 Add to your project's libraryDependencies like this
 
 ```scala
-resolvers in Global += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-librartDependencies += "com.sopranoworks" %% "scredis-json" % "1.0.0-SNAPSHOT"
+librartDependencies += "com.sopranoworks" %% "scredis-json" % "1.0.0"
 ```
 
 ## License

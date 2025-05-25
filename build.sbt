@@ -2,7 +2,7 @@ import xerial.sbt.Sonatype.sonatypeCentralHost
 import xerial.sbt.Sonatype.sonatype01
 
 
-val projectVersion = "1.0.0-SNAPSHOT"
+val projectVersion = "1.0.0"
 val projectScalaVersion = "2.13.10"
 
 scalaVersion := "2.13.10"
@@ -66,7 +66,7 @@ lazy val coreProtocol = (project in file("."))
     pomIncludeRepository := { _ => false },
     sonatypeProfileName := "com.sopranoworks",
     pomExtra :=
-      <url>https://github.com/OsamuTakahashi/scredis-json</url>
+      <url>https://github.com/sopranoworks/scredis-json</url>
         <licenses>
           <license>
             <name>MIT</name>
@@ -74,8 +74,8 @@ lazy val coreProtocol = (project in file("."))
           </license>
         </licenses>
         <scm>
-          <url>https://github.com/OsamuTakahashi/scredis-json</url>
-          <connection>https://github.com/OsamuTakahashi/scredis-json.git</connection>
+          <url>https://github.com/sopranoworks/scredis-json</url>
+          <connection>https://github.com/sopranoworks/scredis-json.git</connection>
         </scm>
         <developers>
           <developer>
